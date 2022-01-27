@@ -12,9 +12,9 @@ DWORD _dwOperatingSystemVersion;
 #include "resource.h"
 #else
 long _dwOperatingSystemVersion;
-//#ifdef __HAIKU__
-//#include <OS.h>
-//#endif
+#ifdef __HAIKU__
+#include <OS.h>
+#endif
 #ifndef __SWITCH__
 #ifndef __APPLE__
 #ifndef __HAIKU__
@@ -23,6 +23,7 @@ long _dwOperatingSystemVersion;
 #ifndef __HAIKU__
 #include <mach/mach_host.h>
 #include <sys/sysctl.h>
+#endif
 #endif
 #endif
 #endif
