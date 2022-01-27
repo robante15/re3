@@ -101,6 +101,11 @@ workspace "re3"
 			"linux-arm-librw_gl3_glfw-oal",
 			"linux-arm64-librw_gl3_glfw-oal",
 		}
+	
+	filter { "system:haiku" }
+		platforms {
+			"haiku-amd64-librw_gl3_glfw-oal",
+		}
 
 	filter { "system:bsd" }
 		platforms {
@@ -131,6 +136,9 @@ workspace "re3"
 
 	filter { "platforms:linux*" }
 		system "linux"
+		
+	filter { "platforms:haiku*" }
+		system "haiku"
 
 	filter { "platforms:bsd*" }
 		system "bsd"
@@ -366,8 +374,14 @@ project "re3"
 
 	filter "platforms:win*glfw*"
 		staticruntime "off"
+
+	filter "platforms:haiku*"
+		includedirs { "vendor/glibc/string" }
+
+	filter "platforms:haiku*glfw*"
+		links { "GL", "glfw" }
 		
-	filter "platforms:*glfw*"
+	filter {"platforms:*glfw*", "system:not haiku"}
 		premake.modules.autoconf.parameters = "-lglfw -lX11"
 		autoconfigure {
 			-- iterates all configs and runs on them
@@ -396,6 +410,9 @@ project "re3"
 		libdirs { "vendor/openal-soft/libs/Win64" }
 
 	filter "platforms:linux*oal"
+		links { "openal", "mpg123", "sndfile", "pthread" }
+		
+	filter "platforms:haiku*oal"
 		links { "openal", "mpg123", "sndfile", "pthread" }
 		
 	filter "platforms:bsd*oal"
