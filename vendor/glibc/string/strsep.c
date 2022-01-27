@@ -14,7 +14,7 @@
 #include <string.h>
 #undef strsep
 char *
-__strsep (char **stringp, const char *delim)
+strsep (char **stringp, const char *delim)
 {
   char *begin, *end;
   begin = *stringp;
