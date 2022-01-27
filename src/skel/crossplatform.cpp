@@ -1,6 +1,10 @@
 #include "common.h"
 #include "crossplatform.h"
 
+#ifndef _HAIKU
+#include "strsep.c"
+#endif
+
 // Codes compatible with Windows and Linux
 #ifndef _WIN32
 
@@ -66,9 +70,10 @@ bool FindNextFile(HANDLE d, WIN32_FIND_DATA* finddata) {
 	static char path[PATH_MAX], relativepath[NAME_MAX + sizeof(finddata->folder) + 1];
 	int extensionLen = strlen(finddata->extension);
 	while ((file = readdir((DIR*)d)) != NULL) {
-
+		return true;
+		// TODO: Fis this code, or put inside of ifndef
 		// We only want "DT_REG"ular Files, but reportedly some FS and OSes gives DT_UNKNOWN as type.
-		if ((file->d_type == DT_UNKNOWN || file->d_type == DT_REG || file->d_type == DT_LNK) &&
+		/*if ((file->d_type == DT_UNKNOWN || file->d_type == DT_REG || file->d_type == DT_LNK) &&
 			(extensionLen == 0 || strncasecmp(&file->d_name[strlen(file->d_name) - extensionLen], finddata->extension, extensionLen) == 0)) {
 
 			sprintf(relativepath, "%s/%s", finddata->folder, file->d_name);
@@ -77,7 +82,7 @@ bool FindNextFile(HANDLE d, WIN32_FIND_DATA* finddata) {
 			strncpy(finddata->cFileName, file->d_name, sizeof(finddata->cFileName));
 			finddata->ftLastWriteTime = fileStats.st_mtime;
 			return true;
-		}
+		}*/
 	}
 	return false;
 }

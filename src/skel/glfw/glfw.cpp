@@ -12,12 +12,19 @@ DWORD _dwOperatingSystemVersion;
 #include "resource.h"
 #else
 long _dwOperatingSystemVersion;
+#ifdef __HAIKU__
+#include <OS.h>
+#endif
 #ifndef __SWITCH__
 #ifndef __APPLE__
+#ifndef __HAIKU__
 #include <sys/sysinfo.h>
 #else
+#ifndef __HAIKU__
 #include <mach/mach_host.h>
 #include <sys/sysctl.h>
+#endif
+#endif
 #endif
 #endif
 #include <errno.h>
@@ -555,6 +562,16 @@ psInitialize(void)
 #elif defined (__SWITCH__)
 	svcGetInfo(&_dwMemAvailPhys, InfoType_UsedMemorySize, CUR_PROCESS_HANDLE, 0);
 	debug("Physical memory size %llu\n", _dwMemAvailPhys);
+#elif defined (__HAIKU__)
+	system_info info; 
+	get_system_info(&info);
+	size_t total_ram = (info.max_pages*B_PAGE_SIZE)/(1024*1024);
+	size_t used_ram = (info.used_pages*B_PAGE_SIZE)/(1024*1024);
+	size_t free_ram = total_ram - used_ram;	
+	_dwMemAvailPhys = free_ram;
+	debug("Physical memory size %u\n", total_ram);
+	debug("Used physical memory %u\n", used_ram);
+	debug("Available physical memory %u\n", free_ram);
 #else
 #ifndef __APPLE__
  	struct sysinfo systemInfo;
