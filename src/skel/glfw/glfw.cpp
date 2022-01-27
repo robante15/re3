@@ -571,7 +571,7 @@ psInitialize(void)
 	get_system_info(&info);
 	size_t total_ram = (info.max_pages*B_PAGE_SIZE)/(1024*1024);
 	size_t used_ram = (info.used_pages*B_PAGE_SIZE)/(1024*1024);
-	size_t free_ram = total - used;	
+	size_t free_ram = total_ram - used_ram;	
 	_dwMemAvailPhys = free_ram;
 	debug("Physical memory size %u\n", total_ram);
 	debug("Used physical memory %u\n", used_ram);
