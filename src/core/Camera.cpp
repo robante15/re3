@@ -2649,7 +2649,7 @@ CCamera::IsItTimeForNewcam(int32 obbeMode, int32 time)
 }
 
 bool
-CCamera::TryToStartNewCamMode(int obbeMode)
+CCamera::TryToStartNewCamMode(int32 obbeMode)
 {
 	CVehicle *veh;
 	CVector target, camPos, playerSpeed, fwd;

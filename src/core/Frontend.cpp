@@ -4327,6 +4327,20 @@ CMenuManager::ProcessButtonPresses(void)
 			return;
 		}
 	}
+	#ifdef __3DS__
+		int kh = hidKeysHeld();
+		int kd = hidKeysDown();
+		if(kh & KEY_L && kh & KEY_R && kd & KEY_DUP){
+			CTheScripts::ScriptToLoad = 1;
+			DoSettingsBeforeStartingAGame();
+			return;
+		}
+		if(kh & KEY_L && kh & KEY_R && kd & KEY_DOWN){
+			CTheScripts::ScriptToLoad = 2;
+			DoSettingsBeforeStartingAGame();
+			return;
+		}	
+	#endif
 #endif
 
 	if (!m_bShowMouse && (m_nMouseOldPosX != m_nMousePosX || m_nMouseOldPosY != m_nMousePosY)) {
@@ -5132,14 +5146,14 @@ CMenuManager::ProcessButtonPresses(void)
 						ControlsManager.MakeControllerActionsBlank();
 						ControlsManager.InitDefaultControlConfiguration();
 						ControlsManager.InitDefaultControlConfigMouse(MousePointerStateHelper.GetMouseSetUp());
-#if !defined RW_GL3
+#if !defined RW_GL3 && defined _WIN32
 						if (AllValidWinJoys.m_aJoys[JOYSTICK1].m_bInitialised) {
 							DIDEVCAPS devCaps;
 							devCaps.dwSize = sizeof(DIDEVCAPS);
 							PSGLOBAL(joy1)->GetCapabilities(&devCaps);
 							ControlsManager.InitDefaultControlConfigJoyPad(devCaps.dwButtons);
 						}
-#else
+#elif defined RW_GL3
 						if (PSGLOBAL(joy1id) != -1 && glfwJoystickPresent(PSGLOBAL(joy1id))) {
 							int count;
 							glfwGetJoystickButtons(PSGLOBAL(joy1id), &count);

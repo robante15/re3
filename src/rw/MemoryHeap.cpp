@@ -1,4 +1,6 @@
+#include <climits>
 #include "common.h"
+#include "Collision.h"
 #include "main.h"
 #include "FileMgr.h"
 #include "Timer.h"

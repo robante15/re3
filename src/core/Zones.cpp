@@ -683,7 +683,15 @@ CTheZones::SaveAllZones(uint8 *buffer, uint32 *size)
 	WriteSaveBuf(buffer, (int32)GetIndexForZonePointer(m_pPlayersZone));
 	WriteSaveBuf(buffer, m_CurrLevel);
 	WriteSaveBuf(buffer, FindIndex);
-	WriteSaveBuf(buffer, (int16)0); // padding
+	#ifdef SOME_PLATFORM_OR_COMPILER_SPECIFIC_BULLSHIT_THAT_UPSTREAM_WONT_CARE_ABOUT
+	WriteSaveBuf(buffer, (int16)0); // padding (for 4-byte alignment)
+	#else
+		/* FOR THE 3DS PORT "buffer" would end up at work_buff+21 then we'd be writing 32-bit words
+		to it and getting a segfault (unaligned access).
+		Perhaps this issue persists with other ARM32 ports?
+		*/
+		WriteSaveBuf(buffer, (int8)0); // padding (for 4-byte alignment)
+	#endif	
 
 	for(i = 0; i < ARRAY_SIZE(ZoneArray); i++){
 #ifdef COMPATIBLE_SAVES

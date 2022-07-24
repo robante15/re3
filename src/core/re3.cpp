@@ -46,7 +46,9 @@
 #include "IniFile.h"
 #include "Zones.h"
 
+#if defined(DETECT_JOYSTICK_MENU) || !defined(_WIN32)
 #include "crossplatform.h"
+#endif
 
 #ifndef _WIN32
 #include "assert.h"
@@ -302,6 +304,13 @@ void StoreIni(const char *cat, const char *key, float val)
 void StoreIni(const char *cat, const char *key, char *val, int size)
 {
 	cfg[cat][key] = val;
+}
+
+void StoreIni(const char *cat, const char *key, bool val)
+{
+	char temp[10];
+	sprintf(temp, "%d", val);
+	cfg[cat][key] = temp;
 }
 
 const char *iniControllerActions[] = { "PED_FIREWEAPON", "PED_CYCLE_WEAPON_RIGHT", "PED_CYCLE_WEAPON_LEFT", "GO_FORWARD", "GO_BACK", "GO_LEFT", "GO_RIGHT", "PED_SNIPER_ZOOM_IN",
@@ -915,7 +924,7 @@ DebugMenuPopulate(void)
 		DebugMenuAddCmd("Cheats", "Strong grip", StrongGripCheat);
 		DebugMenuAddCmd("Cheats", "Nasty limbs", NastyLimbsCheat);
 
-		static int spawnCarId = MI_LANDSTAL;
+		static int32 spawnCarId = MI_LANDSTAL;
 		e = DebugMenuAddVar("Spawn", "Spawn Car ID", &spawnCarId, nil, 1, MI_LANDSTAL, MI_GHOST, carnames);
 		DebugMenuEntrySetWrap(e, true);
 		DebugMenuAddCmd("Spawn", "Spawn Car", [](){
@@ -988,7 +997,7 @@ extern bool gbRenderWorld2;
 
 #ifdef EXTENDED_COLOURFILTER
 		static const char *filternames[] = { "None", "Simple", "Normal", "Mobile" };
-		e = DebugMenuAddVar("Render", "Colourfilter", &CPostFX::EffectSwitch, nil, 1, CPostFX::POSTFX_OFF, CPostFX::POSTFX_MOBILE, filternames);
+		e = DebugMenuAddVar("Render", "Colourfilter", &CPostFX::EffectSwitch, nil, (int32_t)1, CPostFX::POSTFX_OFF, CPostFX::POSTFX_MOBILE, filternames);
 		DebugMenuEntrySetWrap(e, true);
 		DebugMenuAddVar("Render", "Intensity", &CPostFX::Intensity, nil, 0.05f, 0, 10.0f);
 		DebugMenuAddVarBool8("Render", "Motion Blur", &CPostFX::MotionBlurOn, nil);
@@ -1161,7 +1170,11 @@ void re3_assert(const char *expr, const char *filename, unsigned int lineno, con
 #else
 	// TODO
 	printf("\nRE3 ASSERT FAILED\n\tFile: %s\n\tLine: %d\n\tFunction: %s\n\tExpression: %s\n",filename,lineno,func,expr);
+	#ifdef __3DS__
+	svcBreak(USERBREAK_ASSERT);
+	#else
 	assert(false);
+#endif
 #endif
 }
 #endif

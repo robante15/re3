@@ -1185,7 +1185,7 @@ void CRadar::SetBlipSprite(int32 i, int32 icon)
 	}
 }
 
-int CRadar::SetCoordBlip(eBlipType type, CVector pos, int32 color, eBlipDisplay display)
+int32 CRadar::SetCoordBlip(eBlipType type, CVector pos, int32 color, eBlipDisplay display)
 {
 	int nextBlip;
 	for (nextBlip = 0; nextBlip < NUMRADARBLIPS; nextBlip++) {
@@ -1210,7 +1210,7 @@ int CRadar::SetCoordBlip(eBlipType type, CVector pos, int32 color, eBlipDisplay 
 	return CRadar::GetNewUniqueBlipIndex(nextBlip);
 }
 
-int CRadar::SetEntityBlip(eBlipType type, int32 handle, int32 color, eBlipDisplay display)
+int32 CRadar::SetEntityBlip(eBlipType type, int32 handle, int32 color, eBlipDisplay display)
 {
 	int nextBlip;
 	for (nextBlip = 0; nextBlip < NUMRADARBLIPS; nextBlip++) {

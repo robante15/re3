@@ -317,7 +317,7 @@ CPopulation::UpdatePedCount(ePedType pedType, bool decrease)
 	}
 }
 
-int
+int32
 CPopulation::ChooseGangOccupation(int gangId)
 {
 	int8 modelOverride = CGangs::GetGangPedModelOverride(gangId);

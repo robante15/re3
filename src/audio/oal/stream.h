@@ -55,7 +55,7 @@ public:
 	
 	virtual uint32 Decode(void *buffer) = 0;
 };
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 template <typename T> class tsQueue
 {
 public:
@@ -123,7 +123,7 @@ class CStream
 	bool     m_bActive;
 	
 public:
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 	std::mutex	m_mutex;
 	std::queue<std::pair<ALuint, ALuint>> m_fillBuffers; // left and right buffer
 	tsQueue<std::pair<ALuint, ALuint>> m_queueBuffers;
@@ -145,7 +145,7 @@ public:
 
 	void BuffersShouldBeFilled(); // all
 	bool BufferShouldBeFilledAndQueued(std::pair<ALuint, ALuint>*); // two (left-right)
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 	void FlagAsToBeProcessed(bool close = false);
 	bool QueueBuffers();
 #endif

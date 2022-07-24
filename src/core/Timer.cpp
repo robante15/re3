@@ -27,6 +27,25 @@ uint32 _nCyclesPerMS = 1;
 LARGE_INTEGER _oldPerfCounter;
 LARGE_INTEGER perfSuspendCounter;
 #define RsTimerType uint32
+#elif defined(_3DS_PERFCOUNT)
+
+typedef union
+{
+	u64 QuadPart;
+	struct { u32 LowPart, hiPart; };
+} LARGE_INTEGER;
+
+LARGE_INTEGER _oldPerfCounter;
+LARGE_INTEGER perfSuspendCounter;
+
+#define RsTimerType uint32
+
+void
+QueryPerformanceCounter(LARGE_INTEGER *pc)
+{
+	pc->QuadPart = svcGetSystemTick();
+}
+
 #else
 #define RsTimerType double
 #endif
@@ -63,6 +82,13 @@ void CTimer::Initialise(void)
 		QueryPerformanceCounter(&_oldPerfCounter);
 	}
 	else
+#elif defined(_3DS_PERFCOUNT)
+	OutputDebugString("Performance counter available\n");
+	osTimeRef_s timeRef = osGetTimeRef();
+	u64 _perf;
+	_nCyclesPerMS = timeRef.sysclock_hz / 1000;
+	QueryPerformanceCounter(&_oldPerfCounter);
+	if(0)
 #endif
 	{
 		OutputDebugString("Performance counter not available, using millesecond timer\n");
@@ -94,7 +120,7 @@ void CTimer::Update(void)
 
 	m_snPreviousTimeInMilliseconds = m_snTimeInMilliseconds;
 	
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_3DS_PERFCOUNT)
 	if ( (double)_nCyclesPerMS != 0.0 )
 	{
 		LARGE_INTEGER pc;
@@ -177,7 +203,7 @@ void CTimer::Update(void)
 {
 	m_snPreviousTimeInMilliseconds = m_snTimeInMilliseconds;
 	
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_3DS_PERFCOUNT)
 	if ( (double)_nCyclesPerMS != 0.0 )
 	{
 		LARGE_INTEGER pc;
@@ -280,7 +306,7 @@ void CTimer::Resume(void)
 
 uint32 CTimer::GetCyclesPerMillisecond(void)
 {
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_3DS_PERFCOUNT)
 	if (_nCyclesPerMS != 0)
 		return _nCyclesPerMS;
 	else 
@@ -290,7 +316,7 @@ uint32 CTimer::GetCyclesPerMillisecond(void)
 
 uint32 CTimer::GetCurrentTimeInCycles(void)
 {
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_3DS_PERFCOUNT)
 	if ( _nCyclesPerMS != 0 )
 	{
 		LARGE_INTEGER pc;

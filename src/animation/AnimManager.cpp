@@ -804,7 +804,7 @@ CAnimManager::LoadAnimFile(int fd, bool compress)
 		uint32 size;
 	};
 	IfpHeader anpk, info, name, dgan, cpan, anim;
-	int numANPK;
+	int numANPK = 0;
 	char buf[256];
 	int i, j, k, l;
 	float *fbuf = (float*)buf;

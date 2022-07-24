@@ -132,7 +132,7 @@ public:
 #if defined RW_GL3
 	GlfwJoyState           m_OldState;
 	GlfwJoyState           m_NewState;
-#else
+#elif defined WITHDINPUT
 	DIJOYSTATE2           m_OldState;
 	DIJOYSTATE2           m_NewState;
 #endif

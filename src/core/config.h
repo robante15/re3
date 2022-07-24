@@ -249,9 +249,10 @@ enum Config {
 	// only in master builds
 	#undef DRAW_GAME_VERSION_TEXT
 #else
+	#ifndef __3DS__ // Disables it on 3DS
 	// not in master builds
 	#define VALIDATE_SAVE_SIZE
-
+	#endif
 	#define DEBUGMENU
 #endif
 
@@ -265,8 +266,10 @@ enum Config {
 #endif
 
 #define FIX_BUGS		// fixes bugs that we've came across during reversing. You can undefine this only on release builds.
+#ifndef __3DS__ // Disables it on 3DS
 #define MORE_LANGUAGES		// Add more translations to the game
 #define COMPATIBLE_SAVES // this allows changing structs while keeping saves compatible, and keeps saves compatible between platforms, needs to be enabled on 64bit builds!
+#endif
 #define FIX_INCOMPATIBLE_SAVES // try to fix incompatible saves, requires COMPATIBLE_SAVES
 #define LOAD_INI_SETTINGS // as the name suggests. fundamental for CUSTOM_FRONTEND_OPTIONS
 
@@ -295,12 +298,14 @@ enum Config {
 //# define HARDCODED_MODEL_FLAGS	// sets the flags enabled above from hardcoded model names.
 				// NB: keep this enabled unless your map IDEs have these flags baked in
 #define ASPECT_RATIO_SCALE	// Not just makes everything scale with aspect ratio, also adds support for all aspect ratios
+#ifndef __3DS__
 #define PROPER_SCALING		// use original DEFAULT_SCREEN_WIDTH/DEFAULT_SCREEN_HEIGHT from PS2 instead of PC(R* changed HEIGHT here to make radar look better, but broke other hud elements aspect ratio).
-#define DEFAULT_NATIVE_RESOLUTION	// Set default video mode to your native resolution (fixes Windows 10 launch)
 #define USE_TXD_CDIMAGE		// generate and load textures from txd.img
-#define PS2_ALPHA_TEST		// emulate ps2 alpha test 
 #define IMPROVED_VIDEOMODE	// save and load videomode parameters instead of a magic number
 #define DISABLE_LOADING_SCREEN // disable the loading screen which vastly improves the loading time
+#endif
+#define DEFAULT_NATIVE_RESOLUTION	// Set default video mode to your native resolution (fixes Windows 10 launch)
+#define PS2_ALPHA_TEST		// emulate ps2 alpha test 
 #ifdef DISABLE_LOADING_SCREEN
 // enable the PC splash
 #undef RANDOMSPLASH
@@ -308,7 +313,7 @@ enum Config {
 #define DISABLE_VSYNC_ON_TEXTURE_CONVERSION // make texture conversion work faster by disabling vsync
 #define ANISOTROPIC_FILTERING	// set all textures to max anisotropic filtering
 //#define USE_TEXTURE_POOL
-#ifdef LIBRW
+#if defined(LIBRW) && !defined(__3DS__) 
 #define EXTENDED_COLOURFILTER		// more options for colour filter (replaces mblur)
 #define EXTENDED_PIPELINES		// custom render pipelines (includes Neo)
 #define SCREEN_DROPLETS			// neo water droplets
@@ -322,7 +327,9 @@ enum Config {
 #endif
 
 // Particle
-//#define PC_PARTICLE
+#ifdef __3DS__
+#define PC_PARTICLE
+#endif
 //#define PS2_ALTERNATIVE_CARSPLASH // unused on PS2
 
 // Pad
@@ -367,11 +374,13 @@ enum Config {
 #	define CUSTOM_FRONTEND_OPTIONS
 
 #	ifdef CUSTOM_FRONTEND_OPTIONS
+#ifndef __3DS__
 #		define MENU_MAP			// VC-like menu map. Won't appear if you don't have our menu.txd
+#		define MULTISAMPLING		// adds MSAA option
+#endif
 #		define GRAPHICS_MENU_OPTIONS // otherwise Display settings will be scrollable
 #		define NO_ISLAND_LOADING  // disable loadscreen between islands via loading all island data at once, consumes more memory and CPU
 #		define CUTSCENE_BORDERS_SWITCH
-#		define MULTISAMPLING		// adds MSAA option
 #		define INVERT_LOOK_FOR_PAD // add bInvertLook4Pad from VC
 #		define PED_CAR_DENSITY_SLIDERS
 #	endif
@@ -381,7 +390,7 @@ enum Config {
 #define USE_DEBUG_SCRIPT_LOADER	// Loads main.scm by default. Hold R for main_freeroam.scm and D for main_d.scm
 #define USE_MEASUREMENTS_IN_METERS // makes game use meters instead of feet in script
 #define USE_PRECISE_MEASUREMENT_CONVERTION // makes game convert feet to meeters more precisely
-#ifdef PC_MENU
+#if defined(PC_MENU) && !defined(__3DS__)
 #	define MISSION_REPLAY // mobile feature
 #endif
 //#define SIMPLIER_MISSIONS // apply simplifications from mobile
@@ -414,8 +423,10 @@ enum Config {
 #define CAMERA_PICKUP
 
 // Peds
+#ifndef __3DS__
 #define PED_SKIN		// support for skinned geometry on peds, requires COMPATIBLE_SAVES
 #define ANIMATE_PED_COL_MODEL
+#endif
 // #define VC_PED_PORTS			// various ports from VC's CPed, mostly subtle
 // #define NEW_WALK_AROUND_ALGORITHM	// to make walking around vehicles/objects less awkward
 #define CANCELLABLE_CAR_ENTER
@@ -454,15 +465,19 @@ enum Config {
 #endif
 
 // Streaming
-#if !defined(_WIN32) && !defined(__SWITCH__)
+#if !defined(_WIN32) && !defined(__SWITCH__) && !defined(__3DS__)
 	//#define ONE_THREAD_PER_CHANNEL // Don't use if you're not on SSD/Flash - also not utilized too much right now(see commented LoadAllRequestedModels in Streaming.cpp)
 	#define FLUSHABLE_STREAMING // Make it possible to interrupt reading when processing file isn't needed anymore.
 #endif
 #define BIG_IMG // Not complete - allows to read larger img files
 
-//#define SQUEEZE_PERFORMANCE
+#ifdef __3DS__
+#define SQUEEZE_PERFORMANCE
+#endif
 #ifdef SQUEEZE_PERFORMANCE
+	#ifndef __3DS__
 	#undef PS2_ALPHA_TEST
+	#endif
 	#undef NO_ISLAND_LOADING
 	#undef PS2_AUDIO_CHANNELS
 	#undef EXTENDED_OFFSCREEN_DESPAWN_RANGE

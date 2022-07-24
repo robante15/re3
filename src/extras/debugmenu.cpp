@@ -1017,6 +1017,12 @@ DebugMenuProcess(void)
 	CPad *pad = CPad::GetPad(0);
 	if(CTRLJUSTDOWN('M'))
 		menuOn = !menuOn;
+	#ifdef RW_3DS
+		if(hidKeysHeld() & KEY_DDOWN &&
+		hidKeysHeld() & KEY_L &&
+		hidKeysHeld() & KEY_R)
+			menuOn = !menuOn;
+	#endif
 	if(!menuOn)
 		return;
 

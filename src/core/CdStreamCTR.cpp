@@ -1,23 +1,17 @@
-#if !defined _WIN32 && !defined __3DS__
+// Mostly the same as CdStreamPosix.cpp
+
+#ifdef __3DS__
 #include "common.h"
 #include "crossplatform.h"
-#include <signal.h>
-#include <pthread.h>
-#include <semaphore.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <sys/statvfs.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/resource.h>
-#include <stdarg.h>
-#include <limits.h>
 
-#ifdef __linux__
-#include <sys/syscall.h>
-#endif
+#include <fcntl.h>
+#include <3ds.h>
+
+#define S64_MAX		    0x7fffffffffffffff
+#define SEM_VALUE_MAX       0x7fff
+#define CDSTREAM_STACK_SIZE 1024*1024
+#define CDSTREAM_PRIORITY   0x30
+#define CDSTREAM_CORE       2
 
 #include "CdStream.h"
 #include "rwcore.h"
@@ -30,58 +24,6 @@
 bool flushStream[MAX_CDCHANNELS];
 #endif
 
-#ifdef USE_UNNAMED_SEM
-
-#define RE3_SEM_OPEN(name, ...) re3_sem_open()
-sem_t*
-re3_sem_open(void)
-{
-	sem_t* sem = (sem_t*)malloc(sizeof(sem_t));
-	if (sem_init(sem, 0, 1) == -1) {
-		sem = SEM_FAILED;
-	}
-
-	return sem;
-}
-
-#define RE3_SEM_CLOSE(sem, format, ...) re3_sem_close(sem)
-void
-re3_sem_close(sem_t* sem)
-{
-	sem_destroy(sem);
-	free(sem);
-}
-
-#else
-
-#define RE3_SEM_OPEN re3_sem_open
-sem_t*
-re3_sem_open(const char* format, ...)
-{
-	char semName[21];
-	va_list va;
-	va_start(va, format);
-	vsprintf(semName, format, va);
-
-	return sem_open(semName, O_CREAT, 0644, 1);
-}
-
-#define RE3_SEM_CLOSE re3_sem_close
-void
-re3_sem_close(sem_t* sem, const char* format, ...)
-{
-	sem_close(sem);
-
-	char semName[21];
-	va_list va;
-	va_start(va, format);
-	vsprintf(semName, format, va);
-
-	sem_unlink(semName);
-}
-
-#endif
-
 struct CdReadInfo
 {
 	uint32 nSectorOffset;
@@ -92,12 +34,14 @@ struct CdReadInfo
 	int32 nStatus;
 #ifdef ONE_THREAD_PER_CHANNEL
 	int8 nThreadStatus; // 0: created 1:priority set up 2:abort now
-	pthread_t pChannelThread;
-	sem_t *pStartSemaphore;
+	Thread pChannelThread;
+	Handle pStartSemaphore;
 #endif
-	sem_t *pDoneSemaphore; // used for CdStreamSync
+	Handle pDoneSemaphore; // used for CdStreamSync
 	int32 hFile;
 };
+
+
 
 char gCdImageNames[MAX_CDIMAGES+1][64];
 int32 gNumImages;
@@ -107,8 +51,9 @@ int32 gImgFiles[MAX_CDIMAGES]; // -1: error 0:unused otherwise: fd
 char *gImgNames[MAX_CDIMAGES];
 
 #ifndef ONE_THREAD_PER_CHANNEL
-pthread_t _gCdStreamThread;
-sem_t *gCdStreamSema; // released when we have new thing to read(so channel is set)
+Thread _gCdStreamThread;
+Handle _gCdFlushEvent;
+Handle gCdStreamSema; // released when we have new thing to read(so channel is set)
 int8 gCdStreamThreadStatus; // 0: created 1:priority set up 2:abort now
 Queue gChannelRequestQ;
 bool _gbCdStreamOverlapped;
@@ -126,16 +71,15 @@ void
 CdStreamInitThread(void)
 {
 	int status;
+	// char semName[20];
 #ifndef ONE_THREAD_PER_CHANNEL
 	gChannelRequestQ.items = (int32 *)calloc(gNumChannels + 1, sizeof(int32));
 	gChannelRequestQ.head = 0;
 	gChannelRequestQ.tail = 0;
 	gChannelRequestQ.size = gNumChannels + 1;
 	ASSERT(gChannelRequestQ.items != nil );
-	gCdStreamSema = RE3_SEM_OPEN("/semaphore_cd_stream");
-
-
-	if (gCdStreamSema == SEM_FAILED) {
+	status = svcCreateSemaphore(&gCdStreamSema, 0, SEM_VALUE_MAX);
+	if(R_FAILED(status)){
 		CDTRACE("failed to create stream semaphore");
 		ASSERT(0);
 		return;
@@ -146,20 +90,22 @@ CdStreamInitThread(void)
 	{
 		for ( int32 i = 0; i < gNumChannels; i++ )
 		{
-			gpReadInfo[i].pDoneSemaphore = RE3_SEM_OPEN("/semaphore_done%d", i);
-
-			if (gpReadInfo[i].pDoneSemaphore == SEM_FAILED)
-			{
+			// sprintf(semName,"/semaphore_done%d",i);
+			// gpReadInfo[i].pDoneSemaphore = sem_open(semName, O_CREAT, 0644, 0);
+			// LightSemaphore_Init(&gpReadInfo[i].pDoneSemaphore, 0, SEM_VALUE_MAX);
+			status = svcCreateSemaphore(&gpReadInfo[i].pDoneSemaphore, 0, SEM_VALUE_MAX);
+			if(R_FAILED(status)){
 				CDTRACE("failed to create sync semaphore");
 				ASSERT(0);
 				return;
 			}
 
 #ifdef ONE_THREAD_PER_CHANNEL
-			gpReadInfo[i].pStartSemaphore = RE3_SEM_OPEN("/semaphore_start%d", i);
-
-			if (gpReadInfo[i].pStartSemaphore == SEM_FAILED)
-			{
+			// sprintf(semName,"/semaphore_start%d",i);
+			// gpReadInfo[i].pStartSemaphore = sem_open(semName, O_CREAT, 0644, 0);
+			// LightSemaphore_Init(&gpReadInfo[i].pStartSemaphore, 0, SEM_VALUE_MAX);
+			status = svcCreateSemaphore(&gpReadInfo[i].pStartSemaphore, 0, SEM_VALUE_MAX);
+			if(R_FAILED(status)){
 				CDTRACE("failed to create start semaphore");
 				ASSERT(0);
 				return;
@@ -167,10 +113,19 @@ CdStreamInitThread(void)
 			gpReadInfo[i].nThreadStatus = 0;
 			int *channelI = (int*)malloc(sizeof(int));
 			*channelI = i;
-			status = pthread_create(&gpReadInfo[i].pChannelThread, NULL, CdStreamThread, (void*)channelI);
+			// status = pthread_create(&gpReadInfo[i].pChannelThread,
+			// 			NULL,
+			// 			CdStreamThread,
+			// 			(void*)channelI);
+			gpReadInfo[i].pChannelThread =
+			  threadCreate(CdStreamThread,
+				       (void*)channelI,
+				       CDSTREAM_STACK_SIZE,
+				       CDSTREAM_PRIORITY,
+				       CDSTREAM_CORE,
+				       false);
 
-			if (status == -1)
-			{
+			if(!gpReadInfo[i].pChannelThread){
 				CDTRACE("failed to create sync thread");
 				ASSERT(0);
 				return;
@@ -182,10 +137,21 @@ CdStreamInitThread(void)
 #ifndef ONE_THREAD_PER_CHANNEL
 	debug("Using one streaming thread for all channels\n");
 	gCdStreamThreadStatus = 0;
-	status = pthread_create(&_gCdStreamThread, NULL, CdStreamThread, nil);
+	// status = pthread_create(&_gCdStreamThread, NULL, CdStreamThread, nil);
+	_gCdStreamThread =
+	  threadCreate(CdStreamThread,
+		       nil,
+		       CDSTREAM_STACK_SIZE,
+		       CDSTREAM_PRIORITY,
+		       CDSTREAM_CORE,
+		       false);
 
-	if (status == -1)
-	{
+	/* I don't know if/how this shit even works
+	   but the hope is that it should at least yield 
+	   to the thread like a KILL -SIGUSR would. */
+	svcCreateEvent(&_gCdFlushEvent, RESET_ONESHOT);
+	
+	if(!_gCdStreamThread){
 		CDTRACE("failed to create sync thread");
 		ASSERT(0);
 		return;
@@ -268,16 +234,23 @@ GetGTA3ImgSize(void)
 void
 CdStreamShutdown(void)
 {
+	s32 count;
     // Destroying semaphores and free(gpReadInfo) will be done at threads
 #ifndef ONE_THREAD_PER_CHANNEL
 	gCdStreamThreadStatus = 2;
-	sem_post(gCdStreamSema);
-	pthread_join(_gCdStreamThread, nil);
+	// sem_post(gCdStreamSema);
+	// pthread_join(_gCdStreamThread, nil);
+	// LightSemaphore_Release(&gCdStreamSema, 1);
+	svcReleaseSemaphore(&count, gCdStreamSema, 1);
+	threadJoin(_gCdStreamThread, U64_MAX);
 #else
 	for ( int32 i = 0; i < gNumChannels; i++ ) {
 		gpReadInfo[i].nThreadStatus = 2;
-		sem_post(gpReadInfo[i].pStartSemaphore);
-		pthread_join(gpReadInfo[i].pChannelThread, nil);
+		// sem_post(gpReadInfo[i].pStartSemaphore);
+		// pthread_join(gpReadInfo[i].pChannelThread, nil);
+		// LightSemaphore_Release(&gpReadInfo[i].pStartSemaphore, 1);
+		svcReleaseSemaphore(&count, gpReadInfo[i].pStartSemaphore, 1);
+		threadJoin(gpReadInfo[i].pChannelThread, U64_MAX);
 	}
 #endif
 }
@@ -286,6 +259,7 @@ CdStreamShutdown(void)
 int32
 CdStreamRead(int32 channel, void *buffer, uint32 offset, uint32 size)
 {
+	s32 count;
 	ASSERT( channel < gNumChannels );
 	ASSERT( buffer != nil );
 
@@ -298,9 +272,12 @@ CdStreamRead(int32 channel, void *buffer, uint32 offset, uint32 size)
 	CdReadInfo *pChannel = &gpReadInfo[channel];
 	ASSERT( pChannel != nil );
 
-	if ( pChannel->nSectorsToRead != 0 || pChannel->bReading ) {
-		if (pChannel->hFile == hImage - 1 && pChannel->nSectorOffset == _GET_OFFSET(offset) && pChannel->nSectorsToRead >= size)
+	if(pChannel->nSectorsToRead != 0 || pChannel->bReading){
+		if(pChannel->hFile == hImage - 1 &&
+		   pChannel->nSectorOffset == _GET_OFFSET(offset) &&
+		   pChannel->nSectorsToRead >= size){
 			return STREAM_SUCCESS;
+		}
 #ifdef FLUSHABLE_STREAMING
 		flushStream[channel] = 1;
 		CdStreamSync(channel);
@@ -318,11 +295,16 @@ CdStreamRead(int32 channel, void *buffer, uint32 offset, uint32 size)
 
 #ifndef ONE_THREAD_PER_CHANNEL
 	AddToQueue(&gChannelRequestQ, channel);
-	if ( sem_post(gCdStreamSema) != 0 )
-		printf("Signal Sema Error\n");
+
+	// if ( sem_post(gCdStreamSema) != 0 )
+	// 	printf("Signal Sema Error\n");
+	// LightSemaphore_Release(&gCdStreamSema, 1);
+	svcReleaseSemaphore(&count, gCdStreamSema, 1);
 #else
-	if ( sem_post(pChannel->pStartSemaphore) != 0 )
-		printf("Signal Sema Error\n");
+	// if ( sem_post(pChannel->pStartSemaphore) != 0 )
+	// 	printf("Signal Sema Error\n");
+	// LightSemaphore_Release(&pChannel->pStartSemaphore, 1);
+	svcReleaseSemaphore(&count, pChannel->pStartSemaphore, 1);
 #endif
 
 	return STREAM_SUCCESS;
@@ -378,16 +360,23 @@ CdStreamSync(int32 channel)
 	if (flushStream[channel]) {
 		pChannel->nSectorsToRead = 0;
 #ifdef ONE_THREAD_PER_CHANNEL
-		pthread_kill(pChannel->pChannelThread, SIGUSR1);
+		// pthread_kill(pChannel->pChannelThread, SIGUSR1); ???
+		svcSignalEvent(_gCdFlushEvent);
+		
 		if (pChannel->bReading) {
 			pChannel->bLocked = true;
 #else
 		if (pChannel->bReading) {
 			pChannel->bLocked = true;
-			pthread_kill(_gCdStreamThread, SIGUSR1);
+			// pthread_kill(_gCdStreamThread, SIGUSR1); ???
+			svcSignalEvent(_gCdFlushEvent);
+			
 #endif
-			while (pChannel->bLocked)
-				sem_wait(pChannel->pDoneSemaphore);
+			while (pChannel->bLocked){
+				// sem_wait(pChannel->pDoneSemaphore);
+				// LightSemaphore_Acquire(&pChannel->pDoneSemaphore, 1);
+				svcWaitSynchronization(pChannel->pDoneSemaphore, S64_MAX);
+			}
 		}
 		pChannel->bReading = false;
 		flushStream[channel] = false;
@@ -399,7 +388,9 @@ CdStreamSync(int32 channel)
 	{
 		pChannel->bLocked = true;
 		while (pChannel->bLocked && pChannel->nSectorsToRead != 0){
-			sem_wait(pChannel->pDoneSemaphore);
+			// sem_wait(pChannel->pDoneSemaphore);
+			// LightSemaphore_Acquire(&pChannel->pDoneSemaphore, 1);
+			svcWaitSynchronization(pChannel->pDoneSemaphore, S64_MAX);
 		}
 		pChannel->bLocked = false;
 	}
@@ -448,11 +439,21 @@ RemoveFirstInQueue(Queue *queue)
 
 void *CdStreamThread(void *param)
 {
+	s32 count;
 	debug("Created cdstream thread\n");
 
+#ifdef FLUSHABLE_STREAMING
+	/* again, I don't think this shit works... 
+	   
+	 */
+	svcWaitSynchronization(_gCdFlushEvent, 0);
+#endif
+	
 #ifndef ONE_THREAD_PER_CHANNEL
 	while (gCdStreamThreadStatus != 2) {
-		sem_wait(gCdStreamSema);
+		// sem_wait(gCdStreamSema);
+		// LightSemaphore_Acquire(&gCdStreamSema, 1);
+		svcWaitSynchronization(gCdStreamSema, S64_MAX);
 
 		int32 channel = GetFirstInQueue(&gChannelRequestQ);
 		
@@ -462,7 +463,9 @@ void *CdStreamThread(void *param)
 #else
 	int channel = *((int*)param);
 	while (gpReadInfo[channel].nThreadStatus != 2){
-		sem_wait(gpReadInfo[channel].pStartSemaphore);
+		// sem_wait(gpReadInfo[channel].pStartSemaphore);
+		// LightSemaphore_Acquire(&gpReadInfo[channel].pStartSemaphore, 1);
+		svcWaitSynchronization(gpReadInfo[channel].pStartSemaphore, S64_MAX);
 #endif
 
 		CdReadInfo *pChannel = &gpReadInfo[channel];
@@ -510,7 +513,9 @@ void *CdStreamThread(void *param)
 		if ( pChannel->bLocked )
 		{
 			pChannel->bLocked = 0;
-			sem_post(pChannel->pDoneSemaphore);
+			// sem_post(pChannel->pDoneSemaphore);
+			// LightSemaphore_Release(&pChannel->pDoneSemaphore, 1);
+			svcReleaseSemaphore(&count, pChannel->pDoneSemaphore, 1);
 		}
 		pChannel->bReading = false;
 	}
@@ -518,19 +523,27 @@ void *CdStreamThread(void *param)
 #ifndef ONE_THREAD_PER_CHANNEL
 	for ( int32 i = 0; i < gNumChannels; i++ )
 	{
-		RE3_SEM_CLOSE(gpReadInfo[i].pDoneSemaphore, "/semaphore_done%d", i);
+		// sem_close(gpReadInfo[i].pDoneSemaphore);
+		// sprintf(semName,"/semaphore_done%d",i);
+		// sem_unlink(semName);
 	}
-	RE3_SEM_CLOSE(gCdStreamSema, "/semaphore_cd_stream");
+	// sem_close(gCdStreamSema);
+	// sem_unlink("/semaphore_cd_stream");
 	free(gChannelRequestQ.items);
 #else
-	RE3_SEM_CLOSE(gpReadInfo[channel].pStartSemaphore, "/semaphore_start%d", channel);
+	// sem_close(gpReadInfo[channel].pStartSemaphore);
+	// sprintf(semName,"/semaphore_start%d",channel);
+	// sem_unlink(semName);
 
-	RE3_SEM_CLOSE(gpReadInfo[channel].pDoneSemaphore, "/semaphore_done%d", channel);
+	// sem_close(gpReadInfo[channel].pDoneSemaphore);
+	// sprintf(semName,"/semaphore_done%d",channel);
+	// sem_unlink(semName);
 #endif
 	if (gpReadInfo)
 		free(gpReadInfo);
 	gpReadInfo = nil;
-	pthread_exit(nil);
+	// pthread_exit(nil);
+	threadExit(0);
 }
 
 bool

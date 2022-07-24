@@ -3,6 +3,7 @@
 #ifdef AUDIO_OAL
 #include "eax.h"
 #include "AL/efx.h"
+#include "AL/alc.h"
 
 
 void EFXInit();

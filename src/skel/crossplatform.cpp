@@ -1,7 +1,7 @@
 #include "common.h"
 #include "crossplatform.h"
 
-#ifndef _HAIKU
+#ifdef _HAIKU
 #include "strsep.c"
 #endif
 

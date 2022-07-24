@@ -67,9 +67,9 @@
 #define MIN_ANGLE_TO_APPLY_HANDBRAKE 0.7f
 #define MIN_SPEED_TO_APPLY_HANDBRAKE 0.3f
 
-int CCarCtrl::NumLawEnforcerCars;
-int CCarCtrl::NumAmbulancesOnDuty;
-int CCarCtrl::NumFiretrucksOnDuty;
+int32 CCarCtrl::NumLawEnforcerCars;
+int32 CCarCtrl::NumAmbulancesOnDuty;
+int32 CCarCtrl::NumFiretrucksOnDuty;
 bool CCarCtrl::bCarsGeneratedAroundCamera;
 float CCarCtrl::CarDensityMultiplier = 1.0f;
 int32 CCarCtrl::NumMissionCars;

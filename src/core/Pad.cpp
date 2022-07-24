@@ -526,7 +526,7 @@ CMouseControllerState CMousePointerStateHelper::GetMouseSetUp()
 			state.WHEELUP = true;
 		}
 	}
-#else
+#elif defined(GLFW)
 	// It seems there is no way to get number of buttons on mouse, so assign all buttons if we have mouse.
 	double xpos = 1.0f, ypos;
 	glfwGetCursorPos(PSGLOBAL(window), &xpos, &ypos);
@@ -585,7 +585,7 @@ void CPad::UpdateMouse()
 			NewMouseControllerState = PCTempMouseControllerState;
 		}
 	}
-#else
+#elif defined (GLFW)
 	if ( IsForegroundApp() && PSGLOBAL(cursorIsInWindow) )
 	{
 		double xpos = 1.0f, ypos;
@@ -626,6 +626,39 @@ void CPad::UpdateMouse()
 		OldMouseControllerState = NewMouseControllerState;
 		NewMouseControllerState = PCTempMouseControllerState;
 	}
+	#elif defined __3DS__
+	u32 held = hidKeysHeld();
+	u32 down = hidKeysDown();
+	u32 up = hidKeysUp();
+	PCTempMouseControllerState.Clear();
+	PCTempMouseControllerState.x = 0;
+	PCTempMouseControllerState.y = 0;
+	if (down & KEY_TOUCH){
+		u32 ms = CTimer::GetTimeInMilliseconds();
+		printf("ms: %d [%d]\n", ms, PSGLOBAL(LMB_ms));
+		hidTouchRead(&PSGLOBAL(origin));
+		if (ms - PSGLOBAL(LMB_ms) < 1000){
+			PSGLOBAL(LMB) = 1;
+		}else {
+			PSGLOBAL(LMB_ms) = ms;
+		}
+	}else if (up & KEY_TOUCH){
+		PSGLOBAL(LMB) = 0;
+	}else if(held & KEY_TOUCH){
+		hidTouchRead(&PSGLOBAL(touch));
+		int dx = PSGLOBAL(touch).px - PSGLOBAL(origin).px;
+		int dy = PSGLOBAL(touch).py - PSGLOBAL(origin).py;
+		PSGLOBAL(origin).px = PSGLOBAL(touch).px;
+		PSGLOBAL(origin).py = PSGLOBAL(touch).py;
+		if (dx || dy){
+			PCTempMouseControllerState.x = dx;
+			PCTempMouseControllerState.y = -dy;
+		}
+	}
+	
+	PCTempMouseControllerState.LMB = PSGLOBAL(LMB);
+	OldMouseControllerState = NewMouseControllerState;
+	NewMouseControllerState = PCTempMouseControllerState;
 #endif
 }
 
@@ -1095,6 +1128,56 @@ void CPad::AffectFromXinput(uint32 pad)
 }
 #endif
 
+#ifdef __3DS__
+void CPad::AffectFrom3DS()
+{
+	u32 held;
+	circlePosition thumbL, thumbR;
+	touchPosition touch;
+
+	hidScanInput();
+	held = hidKeysHeld();
+	hidCircleRead(&thumbL);
+	hidCstickRead(&thumbR);
+	hidTouchRead(&touch);
+	
+	PCTempJoyState.Circle		= (held & KEY_A)      ? 255 : 0;
+	PCTempJoyState.Cross		= (held & KEY_B)      ? 255 : 0;
+	PCTempJoyState.Square		= (held & KEY_Y)      ? 255 : 0;
+	PCTempJoyState.Triangle		= (held & KEY_X)      ? 255 : 0;
+	PCTempJoyState.DPadDown		= (held & KEY_DDOWN)  ? 255 : 0;
+	PCTempJoyState.DPadLeft		= (held & KEY_DLEFT)  ? 255 : 0;
+	PCTempJoyState.DPadRight	= (held & KEY_DRIGHT) ? 255 : 0;
+	PCTempJoyState.DPadUp		= (held & KEY_DUP)    ? 255 : 0;
+	PCTempJoyState.LeftShoulder1	= (held & KEY_L)      ? 255 : 0;
+	PCTempJoyState.LeftShoulder2	= (held & KEY_ZL)     ? 255 : 0;
+	PCTempJoyState.RightShoulder1	= (held & KEY_R)      ? 255 : 0;
+	PCTempJoyState.RightShoulder2	= (held & KEY_ZR)     ? 255 : 0;
+	PCTempJoyState.Select		= (held & KEY_SELECT) ? 255 : 0;
+	PCTempJoyState.Start		= (held & KEY_START)  ? 255 : 0;
+	PCTempJoyState.LeftShock	= (held & KEY_TOUCH && touch.px < 160) ? 255 : 0;
+	PCTempJoyState.RightShock	= (held & KEY_TOUCH && touch.px > 160) ? 255 : 0;
+
+	float lx = fmax(-1.0f, fmin(1.0f, (float)thumbL.dx / 200.0f));
+	float ly = fmax(-1.0f, fmin(1.0f, (float)thumbL.dy / 200.0f));
+	float rx = fmax(-1.0f, fmin(1.0f, (float)thumbR.dx / 146.0f));
+	float ry = fmax(-1.0f, fmin(1.0f, (float)thumbR.dy / 146.0f));
+
+	if (Abs(lx) > 0.05f || Abs(ly) > 0.05f) {
+		PCTempJoyState.LeftStickX = (int32)(lx * 128.0f);
+		PCTempJoyState.LeftStickY = (int32)(-ly * 128.0f);
+	}
+
+	/* no need for deadzone on my device */
+	/* might want to use a different function, perhaps log or sqrt? */
+	/* something with a descending slope */
+	// if (Abs(rx) > 0.01f || Abs(ry) > 0.01f) {
+		PCTempJoyState.RightStickX = (int32)(rx * 128.0f);
+		PCTempJoyState.RightStickY = (int32)(-ry * 128.0f);
+	// }
+}
+#endif
+
 void CPad::UpdatePads(void)
 {
 	bool bUpdate = true;
@@ -1103,8 +1186,10 @@ void CPad::UpdatePads(void)
 #ifdef XINPUT
 	GetPad(0)->AffectFromXinput(m_bMapPadOneToPadTwo ? 1 : 0);
 	GetPad(1)->AffectFromXinput(m_bMapPadOneToPadTwo ? 0 : 1);
-#else
+#elif defined (DINPUT)
 	CapturePad(0);
+#elif defined (__3DS__)
+	GetPad(0)->AffectFrom3DS();
 #endif
 
 	// Improve keyboard input latency part 1

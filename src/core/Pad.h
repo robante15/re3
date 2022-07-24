@@ -268,6 +268,10 @@ public:
 	void AffectFromXinput(uint32 pad);
 #endif
 
+#ifdef __3DS__
+	void AffectFrom3DS();
+#endif
+
 	// mouse
 	bool GetLeftMouseJustDown()           { return !!(NewMouseControllerState.LMB && !OldMouseControllerState.LMB); }
 	bool GetRightMouseJustDown()          { return !!(NewMouseControllerState.RMB && !OldMouseControllerState.RMB); }

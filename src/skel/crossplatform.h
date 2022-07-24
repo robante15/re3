@@ -75,6 +75,24 @@ void CapturePad(RwInt32 padID);
 void joysChangeCB(int jid, int event);
 #endif
 
+#ifdef RW_3DS
+
+typedef struct
+{
+	RwV2d lastMousePos;
+	touchPosition touch, origin;
+	u32 LMB_ms;
+	int LMB;
+}
+psGlobalType;
+
+#define PSGLOBAL(var) (((psGlobalType *)(RsGlobal.ps))->var)
+
+char *getcwd_3ds(char *buf, size_t size);
+char *realpath(const char *path, char *canon);
+
+#endif
+
 #ifdef DETECT_JOYSTICK_MENU
 extern char gSelectedJoystickName[128];
 #endif

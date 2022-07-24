@@ -18,6 +18,8 @@
 #include <direct.h>
 #include <shlobj.h>
 #include <shlguid.h>
+#elif defined(__3DS__)
+#define _getcwd getcwd_3ds
 #else
 #define _getcwd getcwd
 #endif
@@ -457,7 +459,7 @@ _FindMP3s(void)
 	WIN32_FIND_DATA fd;
 	char filepath[MAX_PATH + sizeof(fd.cFileName)];
 	
-	if (getcwd(_mp3DirectoryPath, MAX_PATH) == NULL) {
+	if (_getcwd(_mp3DirectoryPath, MAX_PATH) == NULL) {
 		perror("getcwd: ");
 		return;
 	}

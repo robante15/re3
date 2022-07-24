@@ -23,7 +23,7 @@
 #include <queue>
 #include <utility>
 
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 #include <iostream>
 #include <thread>
 #include <mutex>
@@ -965,7 +965,7 @@ public:
 void
 CStream::BuffersShouldBeFilled()
 {
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 	if (MusicManager.m_nMusicMode != MUSICMODE_CUTSCENE) {
 		std::queue<std::pair<ALuint, ALuint>> tempQueue;
 		for(int i = 0; i < NUM_STREAMBUFFERS / 2; i++) {
@@ -990,7 +990,7 @@ CStream::BuffersShouldBeFilled()
 bool
 CStream::BufferShouldBeFilledAndQueued(std::pair<ALuint, ALuint>* bufs)
 {
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 	if (MusicManager.m_nMusicMode != MUSICMODE_CUTSCENE)
 		m_fillBuffers.push(*bufs);
 	else
@@ -1006,7 +1006,7 @@ CStream::BufferShouldBeFilledAndQueued(std::pair<ALuint, ALuint>* bufs)
 	return false;
 }
 
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 void
 CStream::FlagAsToBeProcessed(bool close)
 {
@@ -1124,7 +1124,7 @@ void CStream::Initialise()
 #ifdef AUDIO_OAL_USE_MPG123
 	mpg123_init();
 #endif
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 	gAudioThread = std::thread(audioFileOpsThread);
 #endif
 }
@@ -1134,7 +1134,7 @@ void CStream::Terminate()
 #ifdef AUDIO_OAL_USE_MPG123
 	mpg123_exit();
 #endif
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 	gAudioThreadQueueMutex.lock();
 	gAudioThreadTerm = true;
 	gAudioThreadQueueMutex.unlock();
@@ -1150,7 +1150,7 @@ CStream::CStream(ALuint *sources, ALuint (&buffers)[NUM_STREAMBUFFERS]) :
 	m_pBuffer(nil),
 	m_bPaused(false),
 	m_bActive(false),
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 	m_bIExist(false),
 	m_bDoSeek(false),
 	m_SeekPos(0),
@@ -1169,7 +1169,7 @@ bool CStream::Open(const char* filename, uint32 overrideSampleRate)
 {
 	if (IsOpened()) return false;
 
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 	std::unique_lock<std::mutex> lock(m_mutex);
 
 	m_bDoSeek = false;
@@ -1233,7 +1233,7 @@ bool CStream::Open(const char* filename, uint32 overrideSampleRate)
 			DEV("Buffer sec: %f\n",       (float(m_pSoundFile->GetBufferSamples()) / float(m_pSoundFile->GetChannels())/ float(m_pSoundFile->GetSampleRate())));
 			DEV("Length MS: %02d:%02d\n", (m_pSoundFile->GetLength() / 1000) / 60, (m_pSoundFile->GetLength() / 1000) % 60);
 		}
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 		m_bIExist = true;
 #endif
 		return true;
@@ -1250,7 +1250,7 @@ void CStream::Close()
 {
 	if(!IsOpened()) return;
 
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 	{
 		std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -1289,7 +1289,7 @@ bool CStream::HasSource()
 // m_bIExist only written in main thread, thus mutex is not needed on main thread
 bool CStream::IsOpened()
 {
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 	return m_bIExist;
 #else
 	return m_pSoundFile && m_pSoundFile->IsOpened();
@@ -1308,7 +1308,7 @@ bool CStream::IsPlaying()
 		if (sourceState[0] == AL_PLAYING || sourceState[1] == AL_PLAYING)
 			return true;
 
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 		std::lock_guard<std::mutex> lock(m_mutex);
 
 		// Streams are designed in such a way that m_fillBuffers and m_queueBuffers will be *always* filled if audio is playing, and mutex is acquired
@@ -1390,7 +1390,7 @@ void CStream::SetPosMS(uint32 nPos)
 {
 	if ( !IsOpened() ) return;
 	
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 	std::lock_guard<std::mutex> lock(m_mutex);
 
 	std::queue<std::pair<ALuint, ALuint>>().swap(m_fillBuffers);
@@ -1437,7 +1437,7 @@ uint32 CStream::GetLengthMS()
 
 bool CStream::FillBuffer(ALuint *alBuffer)
 {
-#ifndef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 	if ( !HasSource() )
 		return false;
 	if ( !IsOpened() )
@@ -1463,7 +1463,7 @@ bool CStream::FillBuffer(ALuint *alBuffer)
 	return true;
 }
 
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 bool CStream::QueueBuffers()
 {
 	bool buffersQueued = false;
@@ -1516,7 +1516,7 @@ bool CStream::Setup(bool imSureQueueIsEmpty, bool lock)
 {
 	if ( IsOpened() )
 	{
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 		if (lock)
 			m_mutex.lock();
 #endif
@@ -1525,7 +1525,7 @@ bool CStream::Setup(bool imSureQueueIsEmpty, bool lock)
 			Stop();
 			ClearBuffers();
 		}
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 		if (MusicManager.m_nMusicMode == MUSICMODE_CUTSCENE) {
 			m_pSoundFile->Seek(0);
 		} else {
@@ -1592,7 +1592,7 @@ void CStream::Start()
 {
 	if ( !HasSource() ) return;
 	
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 	std::lock_guard<std::mutex> lock(m_mutex);
 	tsQueue<std::pair<ALuint, ALuint>>().swapNts(m_queueBuffers); // TSness not required, second thread always access it when stream mutex acquired
 #endif
@@ -1621,7 +1621,7 @@ void CStream::Update()
 		
 		bool buffersQueuedAndStarted = false;
 		bool buffersQueuedButNotStarted = false;
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 		// Put it in here because we need totalBuffers after queueing to decide when to loop audio
 		if (m_bActive)
 		{
@@ -1657,7 +1657,7 @@ void CStream::Update()
 		// We should wait queue to be cleared to loop track, because position calculation relies on queue.
 		if (m_nLoopCount != 1 && m_bActive && totalBuffers[0] == 0)
 		{
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 			std::lock_guard<std::mutex> lock(m_mutex);
 
 			if (m_fillBuffers.empty() && m_queueBuffers.emptyNts()) // we already acquired stream mutex, which is enough for second thread. thus Nts variant
@@ -1688,7 +1688,7 @@ void CStream::Update()
 
 			if (m_bActive && buffersProcessed[1])
 			{
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 				m_mutex.lock();
 #endif
 				while (!tempFillBuffer.empty()) {
@@ -1696,7 +1696,7 @@ void CStream::Update()
 					tempFillBuffer.pop();
 					buffersQueuedButNotStarted = BufferShouldBeFilledAndQueued(&elem);
 				}
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 				m_mutex.unlock();
 				FlagAsToBeProcessed();
 #endif
@@ -1720,7 +1720,7 @@ void CStream::ProviderInit()
 			SetVolume(m_nVolume);
 			SetLoopCount(m_nLoopCount);
 			SetPosMS(m_nPosBeforeReset);
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 			std::unique_lock<std::mutex> lock(m_mutex);
 #endif
 			if(m_bActive)
@@ -1732,7 +1732,7 @@ void CStream::ProviderInit()
 			m_bReset = false;
 
 		} else {
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 			std::unique_lock<std::mutex> lock(m_mutex);
 #endif
 			m_bReset = false;
@@ -1742,7 +1742,7 @@ void CStream::ProviderInit()
 
 void CStream::ProviderTerm()
 {
-#ifdef MULTITHREADED_AUDIO
+#if defined(MULTITHREADED_AUDIO) && !defined(__3DS__)
 	std::lock_guard<std::mutex> lock(m_mutex);
 
 	// unlike Close() we will reuse this stream, so clearing queues are important.

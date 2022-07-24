@@ -154,4 +154,14 @@ public:
 		
 	static int32 GetRandomNumberInRange(int32 low, int32 high)
 		{ return low + (high - low)*(GetRandomNumber()/float(MYRAND_MAX + 1)); }
+
+#ifdef __3DS__
+	// just so the compiler will shut the fuck up
+	static int GetRandomNumberInRange(int low, int high)
+		{ return GetRandomNumberInRange((int32)low, (int32)high); }
+	
+	static int GetRandomNumberInRange(int low, int32 high)
+		{ return GetRandomNumberInRange((int32)low, (int32)high); }
+#endif
+
 };

@@ -32,7 +32,11 @@ static myFILE myfiles[NUMFILES];
 #include <dirent.h>
 #include <errno.h>
 #include <unistd.h>
-#define _getcwd getcwd
+#ifdef __3DS__
+	#define _getcwd getcwd_3ds
+#else
+	#define _getcwd getcwd
+#endif
 
 // Case-insensitivity on linux (from https://github.com/OneSadCookie/fcaseopen)
 void mychdir(char const *path)
