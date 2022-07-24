@@ -1,0 +1,4 @@
+-I/home/aaron/re3/vendor/openal-soft-ctr/test/utils/alsoft-config
+-o
+/home/aaron/re3/vendor/openal-soft-ctr/test/utils/alsoft-config/moc_mainwindow.cpp
+/home/aaron/re3/vendor/openal-soft-ctr/utils/alsoft-config/mainwindow.h
