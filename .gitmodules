@@ -12,5 +12,11 @@
 	branch = master
 [submodule "vendor/librw"]
 	path = vendor/librw
-	url = https://github.com/aap/librw.git
+	url = https://github.com/robante15/librw.git
 	branch = master
+[submodule "vendor/libctru"]
+	path = vendor/libctru
+	url = https://github.com/devkitPro/libctru.git
+[submodule "vendor/citro3d"]
+	path = vendor/citro3d
+	url = https://github.com/devkitPro/citro3d.git
