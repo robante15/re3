@@ -12,5 +12,4 @@
 	branch = master
 [submodule "vendor/librw"]
 	path = vendor/librw
-	url = https://github.com/aap/librw.git
-	branch = master
+	url = https://github.com/robante15/librw.git
