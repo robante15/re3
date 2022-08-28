@@ -101,7 +101,7 @@ Clone the repository with `git clone --recursive https://github.com/halpz/re3.gi
 
 <details><summary>Linux Premake</summary>
 
-For Linux using premake, proceed: [Building on Linux](https://web.archive.org/web/20210217192751/https://github.com/GTAmodding/re3/wiki/Building-on-Linux)
+For Linux using premake, proceed: [Building on Linux](https://github.com/robante15/re3/wiki/Building-on-Linux)
 
 </details>
 
