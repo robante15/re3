@@ -377,7 +377,8 @@ project "re3"
 		staticruntime "off"
 
 	filter "platforms:haiku*"
-		includedirs { "vendor/glibc/string" }
+		files { addSrcFiles("src/skel/haiku") }
+		includedirs { "src/skel/haiku" }
 
 	filter "platforms:haiku*glfw*"
 		links { "GL", "glfw" }
