@@ -526,7 +526,7 @@ CMouseControllerState CMousePointerStateHelper::GetMouseSetUp()
 			state.WHEELUP = true;
 		}
 	}
-#elif defined(GLFW)
+#elif defined(RW_GL3)
 	// It seems there is no way to get number of buttons on mouse, so assign all buttons if we have mouse.
 	double xpos = 1.0f, ypos;
 	glfwGetCursorPos(PSGLOBAL(window), &xpos, &ypos);
@@ -585,7 +585,7 @@ void CPad::UpdateMouse()
 			NewMouseControllerState = PCTempMouseControllerState;
 		}
 	}
-#elif defined (GLFW)
+#elif defined (RW_GL3)
 	if ( IsForegroundApp() && PSGLOBAL(cursorIsInWindow) )
 	{
 		double xpos = 1.0f, ypos;

@@ -210,6 +210,7 @@ project "librw"
 	files { path.join(Librw, "src/*.*") }
 	files { path.join(Librw, "src/*/*.*") }
 	files { path.join(Librw, "src/gl/*/*.*") }
+	files { path.join(Librw, "src/3ds/*/*.*") }
 
 	filter { "platforms:*x86*" }
 		architecture "x86"
