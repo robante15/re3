@@ -7,14 +7,12 @@
 
 In this repository you'll find the fully reversed source code for GTA III ([master](https://github.com/halpz/re3/tree/master/) branch) and GTA VC ([miami](https://github.com/halpz/re3/tree/miami/) branch).
 
-It has been tested and works on Windows, Linux, MacOS and FreeBSD, on x86, amd64, arm and arm64.\
-Rendering is handled either by original RenderWare (D3D8)
-or the reimplementation [librw](https://github.com/aap/librw) (D3D9, OpenGL 2.1 or above, OpenGL ES 2.0 or above).\
+Originaly it has been tested and works on Windows, Linux, MacOS and FreeBSD, on x86, amd64, arm and arm64.\
+This fork has been tested on Linux, Haiku, and N3DS. \
+Rendering is handled either by original RenderWare (D3D8) or the reimplementation [librw](https://github.com/robante15/librw) (D3D9, OpenGL 2.1 or above, OpenGL ES 2.0 or above).\
 Audio is done with MSS (using dlls from original GTA) or OpenAL.
 
-The project has also been ported to the [Nintendo Switch](https://github.com/AGraber/re3-nx/),
-[Playstation Vita](https://github.com/Rinnegatamante/re3) and
-[Nintendo Wii U](https://github.com/GaryOderNichts/re3-wiiu/).
+The project has also been ported to the Nintendo Switch (Merged), Playstation Vita (Lost) and Nintendo Wii U (Lost).
 
 We cannot build for PS2 or Xbox yet. If you're interested in doing so, get in touch with us.
 
@@ -97,7 +95,7 @@ Sorry for the inconvenience.
 
 When using premake, you may want to point GTA_III_RE_DIR environment variable to GTA3 root folder if you want the executable to be moved there via post-build script.
 
-Clone the repository with `git clone --recursive https://github.com/halpz/re3.git`. Then `cd re3` into the cloned repository.
+Clone the repository with `git clone --recursive https://github.com/robante15/re3.git`. Then `cd re3` into the cloned repository.
 
 <details><summary>Linux Premake</summary>
 
