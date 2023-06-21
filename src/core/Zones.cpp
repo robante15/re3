@@ -683,7 +683,7 @@ CTheZones::SaveAllZones(uint8 *buffer, uint32 *size)
 	WriteSaveBuf(buffer, (int32)GetIndexForZonePointer(m_pPlayersZone));
 	WriteSaveBuf(buffer, m_CurrLevel);
 	WriteSaveBuf(buffer, FindIndex);
-	#ifdef SOME_PLATFORM_OR_COMPILER_SPECIFIC_BULLSHIT_THAT_UPSTREAM_WONT_CARE_ABOUT
+	#ifndef __3DS__
 	WriteSaveBuf(buffer, (int16)0); // padding (for 4-byte alignment)
 	#else
 		/* FOR THE 3DS PORT "buffer" would end up at work_buff+21 then we'd be writing 32-bit words
